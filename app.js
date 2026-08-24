@@ -22,6 +22,7 @@ const dom = {
   goalSelect: document.getElementById("goal-select"),
   mainActionButton: document.getElementById("main-action-button"),
   mainActionText: document.getElementById("main-action-text"),
+  mainActionIcon: document.getElementById("main-action-icon"),
   pauseButton: document.getElementById("pause-button"),
   endButton: document.getElementById("end-button"),
   streakValue: document.getElementById("streak-value"),
@@ -70,6 +71,12 @@ function handleGoalChange(event) {
 }
 
 function handleMainAction() {
+  if (isGoalComplete()) {
+    resetProgress();
+    startFast();
+    return;
+  }
+
   if (state.isRunning) {
     pulseMotivation();
     return;
@@ -79,6 +86,8 @@ function handleMainAction() {
 }
 
 function startFast() {
+  if (state.isRunning) return;
+
   state.startedAt = Date.now();
   state.isRunning = true;
   state.completedShown = false;
@@ -97,13 +106,17 @@ function pauseFast() {
 }
 
 function endFast() {
+  resetProgress();
+  saveState();
+  render();
+}
+
+function resetProgress() {
   state.startedAt = null;
   state.elapsedBeforePause = 0;
   state.isRunning = false;
   state.completedShown = false;
   state.lastMotivationIndex = -1;
-  saveState();
-  render();
 }
 
 function tick() {
@@ -191,13 +204,20 @@ function updateMotivation(progressPercent) {
 
 function updateControls() {
   const hasProgress = state.elapsedBeforePause > 0 || state.isRunning;
+  const complete = isGoalComplete();
 
-  if (state.isRunning) {
+  if (complete) {
+    dom.mainActionText.textContent = "NEW FAST";
+    dom.mainActionIcon.textContent = "⚡";
+  } else if (state.isRunning) {
     dom.mainActionText.textContent = "KEEP GOING";
+    dom.mainActionIcon.textContent = "⚡";
   } else if (state.elapsedBeforePause > 0) {
     dom.mainActionText.textContent = "RESUME FAST";
+    dom.mainActionIcon.textContent = "⚡";
   } else {
     dom.mainActionText.textContent = "START FAST";
+    dom.mainActionIcon.textContent = "⚡";
   }
 
   dom.pauseButton.disabled = !state.isRunning;
@@ -213,11 +233,15 @@ function pulseMotivation() {
   dom.mainActionButton.animate(
     [
       { transform: "scale(1)" },
-      { transform: "scale(1.025)" },
+      { transform: "scale(1.02)" },
       { transform: "scale(1)" }
     ],
-    { duration: 320, easing: "ease-out" }
+    { duration: 300, easing: "ease-out" }
   );
+}
+
+function isGoalComplete() {
+  return !state.isRunning && state.elapsedBeforePause >= getGoalMs() && state.elapsedBeforePause > 0;
 }
 
 function getElapsedMs() {
@@ -259,15 +283,15 @@ function calculateStreak(dateKeys) {
   let streak = 0;
   const cursor = new Date();
 
+  if (!unique.has(getLocalDateKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
   for (let dayOffset = 0; dayOffset < 365; dayOffset += 1) {
     const key = getLocalDateKey(cursor);
+    if (!unique.has(key)) break;
 
-    if (unique.has(key)) {
-      streak += 1;
-    } else if (dayOffset > 0 || streak === 0) {
-      break;
-    }
-
+    streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
 
