@@ -45,7 +45,7 @@ const motivations = [
 
 function initializeApp() {
   loadState();
-  dom.goalSelect.value = String(state.goalHours);
+  dom.goalSelect.value = formatInputHours(state.goalHours);
   bindEvents();
   render();
   window.setInterval(tick, 1000);
@@ -61,11 +61,19 @@ function bindEvents() {
 
 function handleGoalChange(event) {
   if (state.isRunning || state.elapsedBeforePause > 0) {
-    event.target.value = String(state.goalHours);
+    event.target.value = formatInputHours(state.goalHours);
     return;
   }
 
-  state.goalHours = Number(event.target.value);
+  const customHours = Number.parseFloat(event.target.value);
+
+  if (!Number.isFinite(customHours) || customHours <= 0) {
+    event.target.value = formatInputHours(state.goalHours);
+    return;
+  }
+
+  state.goalHours = customHours;
+  event.target.value = formatInputHours(state.goalHours);
   saveState();
   render();
 }
@@ -88,6 +96,15 @@ function handleMainAction() {
 function startFast() {
   if (state.isRunning) return;
 
+  const customHours = Number.parseFloat(dom.goalSelect.value);
+  if (!Number.isFinite(customHours) || customHours <= 0) {
+    dom.goalSelect.value = formatInputHours(state.goalHours);
+    dom.goalSelect.focus();
+    return;
+  }
+
+  state.goalHours = customHours;
+  dom.goalSelect.value = formatInputHours(state.goalHours);
   state.startedAt = Date.now();
   state.isRunning = true;
   state.completedShown = false;
@@ -145,15 +162,15 @@ function completeFast(goalMs) {
 }
 
 function render() {
-  const elapsedMs = Math.min(getElapsedMs(), getGoalMs());
   const goalMs = getGoalMs();
+  const elapsedMs = Math.min(getElapsedMs(), goalMs);
   const remainingMs = Math.max(goalMs - elapsedMs, 0);
   const progress = goalMs > 0 ? Math.min(elapsedMs / goalMs, 1) : 0;
   const progressPercent = Math.round(progress * 100);
   const streak = calculateStreak(state.completedDates);
 
   dom.timerValue.textContent = formatDuration(elapsedMs);
-  dom.goalHoursText.textContent = formatGoal(state.goalHours);
+  dom.goalHoursText.textContent = formatDuration(goalMs);
   dom.timerProgress.style.strokeDasharray = String(RING_CIRCUMFERENCE);
   dom.timerProgress.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - progress));
 
@@ -267,8 +284,8 @@ function formatDuration(milliseconds) {
     .join(":");
 }
 
-function formatGoal(hours) {
-  return `${String(hours).padStart(2, "0")}:00:00`;
+function formatInputHours(hours) {
+  return Number.isInteger(hours) ? String(hours) : String(Number(hours.toFixed(4)));
 }
 
 function getLocalDateKey(date) {
@@ -328,9 +345,9 @@ function loadState() {
     if (!raw) return;
 
     const saved = JSON.parse(raw);
-    const allowedGoals = [12, 14, 16, 18, 20];
+    const savedGoal = Number(saved.goalHours);
 
-    state.goalHours = allowedGoals.includes(saved.goalHours) ? saved.goalHours : 16;
+    state.goalHours = Number.isFinite(savedGoal) && savedGoal > 0 ? savedGoal : 16;
     state.startedAt = Number.isFinite(saved.startedAt) ? saved.startedAt : null;
     state.elapsedBeforePause = Number.isFinite(saved.elapsedBeforePause) && saved.elapsedBeforePause >= 0
       ? saved.elapsedBeforePause
