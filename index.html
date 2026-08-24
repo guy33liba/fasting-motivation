@@ -93,14 +93,8 @@
       </div>
 
       <div id="goal-row">
-        <label id="goal-select-label" for="goal-select">FASTING TARGET</label>
-        <select id="goal-select" aria-label="Fasting target">
-          <option value="12">12 HOURS</option>
-          <option value="14">14 HOURS</option>
-          <option value="16" selected>16 HOURS</option>
-          <option value="18">18 HOURS</option>
-          <option value="20">20 HOURS</option>
-        </select>
+        <label id="goal-select-label" for="goal-select">FASTING TARGET (HOURS)</label>
+        <input id="goal-select" type="number" inputmode="decimal" min="0.01" step="any" value="16" placeholder="16" aria-label="Custom fasting target in hours">
       </div>
     </section>
 
