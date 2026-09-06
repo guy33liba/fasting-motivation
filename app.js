@@ -10,72 +10,74 @@ const state = {
   completedCount: 0,
   completedDates: [],
   completedShown: false,
-  lastMotivationIndex: -1
+  motivationIndex: 0
 };
 
 const dom = {
+  goalInput: document.getElementById("goal-input"),
+  targetNote: document.getElementById("target-note"),
   timerProgress: document.getElementById("timer-progress"),
   timerValue: document.getElementById("timer-value"),
+  progressValue: document.getElementById("progress-value"),
   goalHoursText: document.getElementById("goal-hours-text"),
-  progressText: document.getElementById("progress-text"),
-  motivationText: document.getElementById("motivation-text"),
-  goalSelect: document.getElementById("goal-select"),
+  remainingValue: document.getElementById("remaining-value"),
   mainActionButton: document.getElementById("main-action-button"),
   mainActionText: document.getElementById("main-action-text"),
   mainActionIcon: document.getElementById("main-action-icon"),
-  pauseButton: document.getElementById("pause-button"),
   endButton: document.getElementById("end-button"),
+  motivationText: document.getElementById("motivation-text"),
+  motivationIcon: document.getElementById("motivation-icon"),
   streakValue: document.getElementById("streak-value"),
-  streakBarFill: document.getElementById("streak-bar-fill"),
   completedValue: document.getElementById("completed-value"),
-  completedBarFill: document.getElementById("completed-bar-fill"),
   completionModal: document.getElementById("completion-modal"),
   modalCloseButton: document.getElementById("modal-close-button")
 };
 
 const motivations = [
-  "One more moment — you are building momentum.",
-  "Stay steady. Every minute counts.",
-  "Your commitment is getting stronger.",
-  "You are past the easy part. Keep your focus.",
-  "Strong mind. Clear target. Keep moving.",
-  "You are closing in on the target.",
-  "Final stretch — stay calm and finish strong."
+  { icon: "♡", text: "One clear choice at a time." },
+  { icon: "⚡", text: "Stay steady. Every minute counts." },
+  { icon: "✦", text: "Keep your focus on the target you chose." },
+  { icon: "🔥", text: "Strong rhythm. Calm mind. Keep going." },
+  { icon: "★", text: "You are building momentum." },
+  { icon: "🏁", text: "Final stretch. Stay steady." }
 ];
 
 function initializeApp() {
   loadState();
-  dom.goalSelect.value = formatInputHours(state.goalHours);
+  dom.goalInput.value = formatInputHours(state.goalHours);
   bindEvents();
   render();
   window.setInterval(tick, 1000);
 }
 
 function bindEvents() {
-  dom.goalSelect.addEventListener("change", handleGoalChange);
+  dom.goalInput.addEventListener("input", handleGoalInput);
+  dom.goalInput.addEventListener("blur", handleGoalBlur);
   dom.mainActionButton.addEventListener("click", handleMainAction);
-  dom.pauseButton.addEventListener("click", pauseFast);
   dom.endButton.addEventListener("click", endFast);
   dom.modalCloseButton.addEventListener("click", closeCompletionModal);
 }
 
-function handleGoalChange(event) {
-  if (state.isRunning || state.elapsedBeforePause > 0) {
+function handleGoalInput(event) {
+  if (hasProgress()) {
     event.target.value = formatInputHours(state.goalHours);
     return;
   }
 
-  const customHours = Number.parseFloat(event.target.value);
+  const nextGoal = Number(event.target.value);
+  if (!Number.isFinite(nextGoal) || nextGoal <= 0) return;
 
-  if (!Number.isFinite(customHours) || customHours <= 0) {
-    event.target.value = formatInputHours(state.goalHours);
-    return;
-  }
-
-  state.goalHours = customHours;
-  event.target.value = formatInputHours(state.goalHours);
+  state.goalHours = nextGoal;
   saveState();
   render();
+}
+
+function handleGoalBlur(event) {
+  const nextGoal = Number(event.target.value);
+
+  if (!Number.isFinite(nextGoal) || nextGoal <= 0) {
+    event.target.value = formatInputHours(state.goalHours);
+  }
 }
 
 function handleMainAction() {
@@ -86,7 +88,7 @@ function handleMainAction() {
   }
 
   if (state.isRunning) {
-    pulseMotivation();
+    pauseFast();
     return;
   }
 
@@ -96,15 +98,6 @@ function handleMainAction() {
 function startFast() {
   if (state.isRunning) return;
 
-  const customHours = Number.parseFloat(dom.goalSelect.value);
-  if (!Number.isFinite(customHours) || customHours <= 0) {
-    dom.goalSelect.value = formatInputHours(state.goalHours);
-    dom.goalSelect.focus();
-    return;
-  }
-
-  state.goalHours = customHours;
-  dom.goalSelect.value = formatInputHours(state.goalHours);
   state.startedAt = Date.now();
   state.isRunning = true;
   state.completedShown = false;
@@ -133,27 +126,26 @@ function resetProgress() {
   state.elapsedBeforePause = 0;
   state.isRunning = false;
   state.completedShown = false;
-  state.lastMotivationIndex = -1;
+  state.motivationIndex = 0;
 }
 
 function tick() {
   if (!state.isRunning) return;
 
-  const elapsedMs = getElapsedMs();
-  const goalMs = getGoalMs();
-
-  if (elapsedMs >= goalMs && !state.completedShown) {
-    completeFast(goalMs);
+  if (getElapsedMs() >= getGoalMs() && !state.completedShown) {
+    completeFast();
   }
 
   render();
 }
 
-function completeFast(goalMs) {
+function completeFast() {
+  const goalMs = getGoalMs();
+  const today = getLocalDateKey(new Date());
+
   state.completedShown = true;
   state.completedCount += 1;
-  state.completedDates.push(getLocalDateKey(new Date()));
-  state.completedDates = [...new Set(state.completedDates)].slice(-120);
+  state.completedDates = [...new Set([...state.completedDates, today])].slice(-120);
   state.isRunning = false;
   state.elapsedBeforePause = goalMs;
   state.startedAt = null;
@@ -166,95 +158,72 @@ function render() {
   const elapsedMs = Math.min(getElapsedMs(), goalMs);
   const remainingMs = Math.max(goalMs - elapsedMs, 0);
   const progress = goalMs > 0 ? Math.min(elapsedMs / goalMs, 1) : 0;
-  const progressPercent = Math.round(progress * 100);
+  const percent = Math.round(progress * 100);
   const streak = calculateStreak(state.completedDates);
 
   dom.timerValue.textContent = formatDuration(elapsedMs);
+  dom.progressValue.textContent = `${percent}%`;
   dom.goalHoursText.textContent = formatDuration(goalMs);
+  dom.remainingValue.textContent = formatDuration(remainingMs);
   dom.timerProgress.style.strokeDasharray = String(RING_CIRCUMFERENCE);
   dom.timerProgress.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - progress));
-
   dom.streakValue.textContent = String(streak);
-  dom.streakBarFill.style.width = `${Math.min(streak * 10, 100)}%`;
   dom.completedValue.textContent = String(state.completedCount);
-  dom.completedBarFill.style.width = `${Math.min(state.completedCount * 5, 100)}%`;
 
-  updateProgressText(progressPercent, remainingMs);
-  updateMotivation(progressPercent);
+  updateMotivation(percent);
   updateControls();
-}
-
-function updateProgressText(progressPercent, remainingMs) {
-  if (remainingMs === 0 && getElapsedMs() > 0) {
-    dom.progressText.textContent = "TARGET COMPLETE";
-    return;
-  }
-
-  if (state.isRunning) {
-    dom.progressText.textContent = `${progressPercent}% COMPLETE`;
-    return;
-  }
-
-  if (state.elapsedBeforePause > 0) {
-    dom.progressText.textContent = "PAUSED";
-    return;
-  }
-
-  dom.progressText.textContent = "READY TO BEGIN";
-}
-
-function updateMotivation(progressPercent) {
-  let index = 0;
-
-  if (progressPercent >= 85) index = 6;
-  else if (progressPercent >= 70) index = 5;
-  else if (progressPercent >= 55) index = 4;
-  else if (progressPercent >= 40) index = 3;
-  else if (progressPercent >= 25) index = 2;
-  else if (progressPercent >= 10) index = 1;
-
-  if (index !== state.lastMotivationIndex) {
-    state.lastMotivationIndex = index;
-    dom.motivationText.textContent = motivations[index];
-  }
+  updateTargetNote();
 }
 
 function updateControls() {
-  const hasProgress = state.elapsedBeforePause > 0 || state.isRunning;
+  const progressExists = hasProgress();
   const complete = isGoalComplete();
 
   if (complete) {
-    dom.mainActionText.textContent = "NEW FAST";
+    dom.mainActionText.textContent = "START NEW FAST";
     dom.mainActionIcon.textContent = "⚡";
   } else if (state.isRunning) {
-    dom.mainActionText.textContent = "KEEP GOING";
-    dom.mainActionIcon.textContent = "⚡";
+    dom.mainActionText.textContent = "PAUSE FAST";
+    dom.mainActionIcon.textContent = "Ⅱ";
   } else if (state.elapsedBeforePause > 0) {
     dom.mainActionText.textContent = "RESUME FAST";
-    dom.mainActionIcon.textContent = "⚡";
+    dom.mainActionIcon.textContent = "▶";
   } else {
     dom.mainActionText.textContent = "START FAST";
     dom.mainActionIcon.textContent = "⚡";
   }
 
-  dom.pauseButton.disabled = !state.isRunning;
-  dom.endButton.disabled = !hasProgress;
-  dom.goalSelect.disabled = hasProgress;
+  dom.endButton.hidden = !progressExists;
+  dom.goalInput.disabled = progressExists;
 }
 
-function pulseMotivation() {
-  const nextIndex = (state.lastMotivationIndex + 1) % motivations.length;
-  state.lastMotivationIndex = nextIndex;
-  dom.motivationText.textContent = motivations[nextIndex];
+function updateMotivation(percent) {
+  let index = 0;
 
-  dom.mainActionButton.animate(
-    [
-      { transform: "scale(1)" },
-      { transform: "scale(1.02)" },
-      { transform: "scale(1)" }
-    ],
-    { duration: 300, easing: "ease-out" }
-  );
+  if (percent >= 90) index = 5;
+  else if (percent >= 70) index = 4;
+  else if (percent >= 45) index = 3;
+  else if (percent >= 20) index = 2;
+  else if (percent > 0) index = 1;
+
+  state.motivationIndex = index;
+  dom.motivationIcon.textContent = motivations[index].icon;
+  dom.motivationText.textContent = motivations[index].text;
+}
+
+function updateTargetNote() {
+  if (state.goalHours > 24) {
+    dom.targetNote.hidden = false;
+    dom.targetNote.textContent = "Extended fasts can carry additional risks. Consider medical guidance before longer fasting.";
+    return;
+  }
+
+  dom.targetNote.hidden = true;
+  dom.targetNote.textContent = "";
+}
+
+function hasProgress() {
+  return state.isRunning || state.elapsedBeforePause > 0;
 }
 
 function isGoalComplete() {
@@ -274,7 +243,7 @@ function getGoalMs() {
 }
 
 function formatDuration(milliseconds) {
-  const totalSeconds = Math.floor(milliseconds / 1000);
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
@@ -285,7 +254,7 @@ function formatDuration(milliseconds) {
 }
 
 function formatInputHours(hours) {
-  return Number.isInteger(hours) ? String(hours) : String(Number(hours.toFixed(4)));
+  return Number.isInteger(hours) ? String(hours) : String(Number(hours.toFixed(2)));
 }
 
 function getLocalDateKey(date) {
@@ -296,17 +265,17 @@ function getLocalDateKey(date) {
 }
 
 function calculateStreak(dateKeys) {
-  const unique = new Set(dateKeys);
-  let streak = 0;
+  const uniqueDates = new Set(dateKeys);
   const cursor = new Date();
+  let streak = 0;
 
-  if (!unique.has(getLocalDateKey(cursor))) {
+  if (!uniqueDates.has(getLocalDateKey(cursor))) {
     cursor.setDate(cursor.getDate() - 1);
   }
 
-  for (let dayOffset = 0; dayOffset < 365; dayOffset += 1) {
+  for (let index = 0; index < 365; index += 1) {
     const key = getLocalDateKey(cursor);
-    if (!unique.has(key)) break;
+    if (!uniqueDates.has(key)) break;
 
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
