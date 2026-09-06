@@ -3,59 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#07000d">
-  <meta name="description" content="A bright neon fasting timer with progress, motivation, streaks and simple controls.">
+  <meta name="theme-color" content="#07030d">
+  <meta name="description" content="A simple, bright fasting timer with custom target hours, progress, motivation and streak tracking.">
   <title>Fasting Power Timer</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body id="app-body">
-  <div id="background-image" aria-hidden="true"></div>
-  <div id="background-overlay" aria-hidden="true"></div>
-  <div id="energy-field" aria-hidden="true"></div>
-  <div id="spark-layer" aria-hidden="true"></div>
-  <div id="ember-layer" aria-hidden="true"></div>
-  <div id="lightning-field" aria-hidden="true">
-    <span id="lightning-left-one"></span>
-    <span id="lightning-left-two"></span>
-    <span id="lightning-right-one"></span>
-    <span id="lightning-right-two"></span>
-  </div>
+  <div id="ambient-bg" aria-hidden="true"></div>
+  <div id="spark-bg" aria-hidden="true"></div>
 
   <main id="app-shell">
     <header id="app-header">
-      <p id="app-kicker"><span id="kicker-bolt-left" aria-hidden="true">⚡</span> FASTING POWER <span id="kicker-bolt-right" aria-hidden="true">⚡</span></p>
-      <h1 id="app-title"><span id="title-first-line">YOU ARE</span><span id="title-accent">STRONGER</span></h1>
-      <p id="app-subtitle">Every minute of your plan builds <span id="discipline-word">discipline</span>, <span id="clarity-word">clarity</span>, and <span id="momentum-word">momentum</span>.</p>
+      <div id="brand-row">
+        <span id="brand-bolt-left" aria-hidden="true">⚡</span>
+        <p id="app-kicker">FASTING POWER</p>
+        <span id="brand-bolt-right" aria-hidden="true">⚡</span>
+      </div>
+      <h1 id="app-title">YOU ARE <span id="title-accent">STRONGER</span></h1>
+      <p id="app-subtitle">Set your target. Start the timer. Stay focused.</p>
     </header>
 
-    <section id="timer-section" aria-labelledby="timer-heading">
+    <section id="target-card" aria-labelledby="target-heading">
+      <div id="target-row">
+        <div id="target-copy">
+          <h2 id="target-heading">TARGET HOURS</h2>
+          <p id="target-helper">Enter any positive number.</p>
+        </div>
+        <div id="target-input-wrap">
+          <input id="goal-input" type="number" inputmode="decimal" min="0.01" step="any" value="16" aria-label="Fasting target in hours">
+          <span id="target-unit">HRS</span>
+        </div>
+      </div>
+      <p id="target-note" hidden></p>
+    </section>
+
+    <section id="timer-card" aria-labelledby="timer-heading">
       <h2 id="timer-heading" class="visually-hidden">Fasting timer</h2>
 
       <div id="timer-ring-wrap">
-        <div id="outer-aura" aria-hidden="true"></div>
-        <div id="ring-energy" aria-hidden="true"></div>
-        <div id="ring-ticks" aria-hidden="true"></div>
-        <div id="inner-aura" aria-hidden="true"></div>
+        <div id="ring-aura" aria-hidden="true"></div>
         <div id="ring-orbit" aria-hidden="true"><span id="ring-flare"></span></div>
 
         <svg id="timer-ring" viewBox="0 0 320 320" role="img" aria-label="Fasting progress ring">
           <defs>
             <linearGradient id="ring-gradient" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#00d9ff"></stop>
-              <stop offset="18%" stop-color="#7a43ff"></stop>
-              <stop offset="38%" stop-color="#ff2bd6"></stop>
-              <stop offset="58%" stop-color="#ff3d23"></stop>
-              <stop offset="78%" stop-color="#ff9d00"></stop>
-              <stop offset="100%" stop-color="#fff04a"></stop>
+              <stop offset="0%" stop-color="#22e8ff"></stop>
+              <stop offset="28%" stop-color="#7c43ff"></stop>
+              <stop offset="52%" stop-color="#ff2fce"></stop>
+              <stop offset="76%" stop-color="#ff7a00"></stop>
+              <stop offset="100%" stop-color="#fff35a"></stop>
             </linearGradient>
-            <linearGradient id="track-gradient" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#2de7ff" stop-opacity="0.36"></stop>
-              <stop offset="35%" stop-color="#9c4dff" stop-opacity="0.30"></stop>
-              <stop offset="68%" stop-color="#ff2fbb" stop-opacity="0.30"></stop>
-              <stop offset="100%" stop-color="#ffb400" stop-opacity="0.36"></stop>
-            </linearGradient>
-            <filter id="ring-glow" x="-70%" y="-70%" width="240%" height="240%">
-              <feGaussianBlur stdDeviation="5" result="blur"></feGaussianBlur>
+            <filter id="ring-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="blur"></feGaussianBlur>
               <feMerge>
                 <feMergeNode in="blur"></feMergeNode>
                 <feMergeNode in="SourceGraphic"></feMergeNode>
@@ -64,37 +63,37 @@
           </defs>
           <circle id="timer-track" cx="160" cy="160" r="132"></circle>
           <circle id="timer-progress" cx="160" cy="160" r="132"></circle>
-          <circle id="timer-highlight" cx="160" cy="160" r="146"></circle>
         </svg>
 
         <div id="timer-center">
-          <div id="elapsed-divider" aria-hidden="true"><span id="elapsed-divider-left"></span><span id="elapsed-divider-dot"></span><span id="elapsed-divider-right"></span></div>
-          <p id="timer-label">ELAPSED TIME</p>
+          <p id="timer-label">ELAPSED</p>
           <div id="timer-value" aria-live="polite">00:00:00</div>
-          <p id="target-label">TARGET TIME</p>
-          <p id="goal-hours-text">16:00:00</p>
-          <p id="progress-text">READY WHEN YOU ARE</p>
+          <div id="progress-pill"><span id="progress-value">0%</span> COMPLETE</div>
         </div>
       </div>
 
-      <div id="motivation-strip" aria-live="polite">
-        <span id="motivation-icon" aria-hidden="true">♡</span>
-        <p id="motivation-text">One more moment — you are doing incredible work.</p>
+      <div id="timer-meta">
+        <div id="target-summary">
+          <span id="target-summary-label">TARGET</span>
+          <strong id="goal-hours-text">16:00:00</strong>
+        </div>
+        <div id="remaining-summary">
+          <span id="remaining-summary-label">REMAINING</span>
+          <strong id="remaining-value">16:00:00</strong>
+        </div>
       </div>
+    </section>
 
+    <section id="action-card" aria-label="Fasting controls">
       <button id="main-action-button" type="button">
         <span id="main-action-text">START FAST</span>
         <span id="main-action-icon" aria-hidden="true">⚡</span>
       </button>
+      <button id="end-button" type="button" hidden>END FAST</button>
 
-      <div id="secondary-actions">
-        <button id="pause-button" type="button" disabled><span id="pause-icon" aria-hidden="true">Ⅱ</span> PAUSE</button>
-        <button id="end-button" type="button" disabled><span id="end-icon" aria-hidden="true">■</span> END FAST</button>
-      </div>
-
-      <div id="goal-row">
-        <label id="goal-select-label" for="goal-select">FASTING TARGET (HOURS)</label>
-        <input id="goal-select" type="number" inputmode="decimal" min="0.01" step="any" value="16" placeholder="16" aria-label="Custom fasting target in hours">
+      <div id="motivation-strip" aria-live="polite">
+        <span id="motivation-icon" aria-hidden="true">♡</span>
+        <p id="motivation-text">One clear choice at a time.</p>
       </div>
     </section>
 
@@ -103,48 +102,32 @@
         <span id="streak-icon" aria-hidden="true">🔥</span>
         <strong id="streak-value">0</strong>
         <span id="streak-label">DAY STREAK</span>
-        <small id="streak-copy">Keep the fire alive!</small>
-        <div id="streak-bar" aria-hidden="true"><span id="streak-bar-fill"></span></div>
-      </article>
-
-      <article id="quote-card">
-        <span id="quote-icon" aria-hidden="true">❝</span>
-        <p id="quote-text">Discipline today leads to freedom tomorrow.</p>
-        <span id="quote-heart" aria-hidden="true">♥</span>
       </article>
 
       <article id="completed-card">
         <span id="completed-icon" aria-hidden="true">🏆</span>
         <strong id="completed-value">0</strong>
         <span id="completed-label">FASTS COMPLETED</span>
-        <small id="completed-copy">Build your momentum.</small>
-        <div id="completed-bar" aria-hidden="true"><span id="completed-bar-fill"></span></div>
       </article>
     </section>
-
-    <div id="bottom-power-line">
-      <span id="bottom-power-icon" aria-hidden="true">⚡</span>
-      <p id="bottom-power-text"><span id="power-cyan">Fasting is power.</span> You are <span id="power-yellow">becoming unstoppable.</span></p>
-    </div>
 
     <aside id="ad-slot" aria-label="Advertisement space">
       <span id="ad-label">ADVERTISEMENT</span>
     </aside>
 
     <footer id="app-footer">
-      <p id="footer-text">Choose a fasting plan that suits you, stay hydrated when appropriate, and end the fast if you feel unwell.</p>
+      <p id="footer-text">Choose a fasting plan that suits you. Stay hydrated when appropriate and end the fast if you feel unwell.</p>
     </footer>
   </main>
 
   <div id="completion-modal" role="dialog" aria-modal="true" aria-labelledby="completion-title" hidden>
     <div id="modal-backdrop"></div>
     <div id="modal-card">
-      <div id="modal-glow" aria-hidden="true"></div>
       <div id="modal-icon" aria-hidden="true">🏆</div>
       <p id="modal-kicker">TARGET COMPLETE</p>
       <h2 id="completion-title">You did it.</h2>
-      <p id="completion-copy">You stayed with the goal you chose. Save the win and reset when you are ready.</p>
-      <button id="modal-close-button" type="button">SAVE THE WIN ⚡</button>
+      <p id="completion-copy">You completed the target you chose.</p>
+      <button id="modal-close-button" type="button">DONE</button>
     </div>
   </div>
 
